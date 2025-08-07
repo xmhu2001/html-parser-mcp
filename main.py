@@ -29,11 +29,30 @@ def guide_prompt():
     4.  **调用工具**: 进行工具调用，传入HTML内容和选择的 selector 以及 selector_type。
     """
 
+def read_html_from_file(file_path: str) -> tuple[str | None, str | None]:
+    """从本地文件中读取HTML内容并返回一个字符串。"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read(), None
+    except FileNotFoundError:
+        error_msg = f"错误：文件未找到。路径：'{file_path}'"
+        return None, error_msg
+    except Exception as e:
+        error_msg = f"读取文件时发生未知错误: {e}"
+        return None, error_msg
+
 @mcp.tool(
     name='html parser',
     description='解析 html 文件, 获取元数据与结构化文本内容'
 )
-def parse_html(html: str, selector: str, selector_type: str = 'css') -> dict:
+def parse_html(html_path: str, selector: str, selector_type: str = 'css') -> dict:
+
+    html, error = read_html_from_file(html_path)
+    if error:
+        return {"error": error}
+
+    if not html:
+        return {"error": f"file is empty: {html_path}"}
 
     parser = HTMLParser(html)
 
