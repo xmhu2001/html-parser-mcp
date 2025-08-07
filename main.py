@@ -1,3 +1,4 @@
+import requests
 from mcp.server.fastmcp import FastMCP
 from html_parser import HTMLParser
 
@@ -10,7 +11,7 @@ def guide_prompt():
     **能力**
     你拥有一个强大的工具，可以帮助你处理原始的HTML代码。
     * **工具名称**: html_parser
-    * **工具功能**: 解析 html 文件, 获取元数据与结构化文本内容。特别地，图片的 ALT 文本被解析为"[picture desc:]"形式的文本，当查找到此格式的内容即判定为图片的 ALT 文本。
+    * **工具功能**: 解析 html 文件, 获取元数据与结构化文本内容。输入源可以是【本地文件的路径】或者一个【网页URL】。特别地，图片的 ALT 文本被解析为"[picture desc:]"形式的文本，当查找到此格式的内容即判定为图片的 ALT 文本。
     
     **你的思考与行动流程**
     当接收到用户的请求时，你应该遵循以下思考链来决定行动：
@@ -22,16 +23,30 @@ def guide_prompt():
     """
 
 def read_html_from_file(file_path: str) -> tuple[str | None, str | None]:
-    """从本地文件中读取HTML内容并返回一个字符串。"""
+    """从本地文件中读取HTML内容"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read(), None
     except FileNotFoundError:
-        error_msg = f"错误：文件未找到。路径：'{file_path}'"
+        error_msg = f"error：file not found：'{file_path}'"
         return None, error_msg
     except Exception as e:
-        error_msg = f"读取文件时发生未知错误: {e}"
+        error_msg = f"error: {e}"
         return None, error_msg
+
+def fetch_html_from_url(url: str) -> tuple[str | None, str | None]:
+    """从URL获取并解码网页内容"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+
+        return response.text, None
+
+    except requests.exceptions.RequestException as e:
+        return None, f"network error: {e}"
 
 @mcp.tool(
     name='html_parser',
@@ -39,7 +54,12 @@ def read_html_from_file(file_path: str) -> tuple[str | None, str | None]:
 )
 def parse_html(html_path: str, selector: str | None = None, selector_type: str = 'css') -> dict:
 
-    html, error = read_html_from_file(html_path)
+    html_path = html_path.strip()
+    if html_path.startswith(('http://', 'https://')):
+        html, error = fetch_html_from_url(html_path)
+    else:
+        html, error = read_html_from_file(html_path)
+
     if error:
         return {"error": error}
 
