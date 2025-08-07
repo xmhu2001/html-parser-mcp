@@ -3,10 +3,10 @@ from html_parser import HTMLParser
 
 mcp = FastMCP('HTML Parser MCP Server')
 
-@mcp.prompt
+@mcp.prompt()
 def guide_prompt():
 
-    tool_name = 'html parser'
+    tool_name = 'html_parser'
     tool_description = '解析 html 文件, 获取元数据与结构化文本内容'
 
     return f"""你是一个智能的网页内容分析助手
@@ -42,7 +42,7 @@ def read_html_from_file(file_path: str) -> tuple[str | None, str | None]:
         return None, error_msg
 
 @mcp.tool(
-    name='html parser',
+    name='html_parser',
     description='解析 html 文件, 获取元数据与结构化文本内容'
 )
 def parse_html(html_path: str, selector: str, selector_type: str = 'css') -> dict:
