@@ -28,7 +28,7 @@ def _format_table_to_markdown(table_tag: Tag) -> str:
     for i, row in enumerate(rows):
         cells = row.find_all(['th', 'td'])
 
-        cell_texts = [cell.get_text(strip=True).replace('|', r'\|') for cell in cells]
+        cell_texts = [cell.get_text(strip=True).replace('|', '|') for cell in cells]
 
         markdown_row = '| ' + ' | '.join(cell_texts) + ' |'
         markdown_lines.append(markdown_row)
@@ -43,41 +43,31 @@ def _recursive_format(tag: Tag) -> str:
     """
     将BeautifulSoup标签及其内容转换为保留结构的纯文本
     """
-    text_parts = []
+    if isinstance(tag, NavigableString):
+        return tag.strip() + " "
 
-    for child in tag.children:
-        if isinstance(child, NavigableString):
-            text = child.strip()
-            if text:
-                text_parts.append(text + " ")
+    if tag.name == 'table':
+        return _format_table_to_markdown(tag) + "\n\n"
 
-        elif isinstance(child, Tag):
-            if child.name == 'table':
-                markdown_table = _format_table_to_markdown(child)
-                text_parts.append(markdown_table + "\n\n")
+    if tag.name in [f'h{i}' for i in range(1, 7)]:
+        prefix = '#' * int(tag.name[1])
+        return f"\n{prefix} {tag.get_text(strip=True)}\n\n"
 
-            elif child.name in [f'h{i}' for i in range(1, 7)]:
-                prefix = '#' * int(child.name[1])
-                text_parts.append(f"\n{prefix} {child.get_text(strip=True)}\n\n")
+    if tag.name == 'p':
+        return tag.get_text(strip=True) + "\n\n"
 
-            elif child.name == 'p':
-                text_parts.append(child.get_text(strip=True) + "\n\n")
+    if tag.name == 'img':
+        alt_text = tag.get('alt', '').strip()
+        return f"[picture desc: {alt_text}]\n" if alt_text else ""
 
-            elif child.name == 'img':
-                alt_text = child.get('alt', '').strip()
-                if alt_text:
-                    text_parts.append(f"[picture desc: {alt_text}]\n")
+    if tag.name == 'li':
+        content = "".join([_recursive_format(child) for child in tag.children])
+        return f"* {content.strip()}\n"
 
-            elif child.name == 'li':
-                text_parts.append(f"* {child.get_text(strip=True)}\n")
+    if tag.name in ['ul', 'ol']:
+        return "\n" + "".join([_recursive_format(child) for child in tag.children]) + "\n"
 
-            elif child.name in ['ul', 'ol']:
-                text_parts.append("\n" + _recursive_format(child) + "\n")
-
-            else:
-                text_parts.append(_recursive_format(child))
-
-    return "".join(text_parts)
+    return "".join([_recursive_format(child) for child in tag.children])
 
 def format_to_structured_text(tag: Tag) -> str:
 

@@ -62,16 +62,20 @@ class HTMLParser:
             return formatter.format_to_structured_text(soup_tag)
         return ""
 
-    def parse(self, selector: str, selector_type: str = 'css') -> dict:
+    def parse(self, selector: str | None = None, selector_type: str = 'css') -> dict:
 
         metadata = self.get_metadata()
 
-        if selector_type == 'css':
-            structured_text = self.get_text_by_css(selector)
-        elif selector_type == 'xpath':
-            structured_text = self.get_text_by_xpath(selector)
+        if selector:
+            if selector_type == 'css':
+                structured_text = self.get_text_by_css(selector)
+            elif selector_type == 'xpath':
+                structured_text = self.get_text_by_xpath(selector)
+            else:
+                raise ValueError(f"unsupported selector type: {selector_type}")
+
         else:
-            raise ValueError(f"unsupported selector type: {selector_type}")
+            structured_text = formatter.format_to_structured_text(self.soup.body)
 
         return {
             'metadata': metadata,
